@@ -1078,7 +1078,7 @@ if __name__ == "__main__":
 
     try:
         opts, args = getopt.getopt(sys.argv[1:],
-                                   "DhqVfeE:wvrp:b:a:l:i:",
+                                   "DhqVfeE:wvrp:b:a:l:i:Z",
                                    ['help', 'ieee-address=','erase-page=',
                                     'disable-bootloader',
                                     'zig-star',
