@@ -47,6 +47,7 @@ import os
 import struct
 import binascii
 import traceback
+import requests
 
 try:
     import magic
@@ -62,7 +63,7 @@ except ImportError:
     have_hex_support = False
 
 # version
-__version__ = "2.1"
+__version__ = "2.1.1"
 
 # Verbose level
 QUIET = 5
@@ -1042,6 +1043,7 @@ def usage():
     --bootloader-active-high     Use active high signals to enter bootloader
     --bootloader-invert-lines    Inverts the use of RTS and DTR to enter bootloader
     -D, --disable-bootloader     After finishing, disable the bootloader
+    -Z, --zig-star               Enable BSL using LAN for Zig Star Gateway
     --version                    Print script version
 
 Examples:
@@ -1068,16 +1070,18 @@ if __name__ == "__main__":
             'ieee_address': 0,
             'bootloader_active_high': False,
             'bootloader_invert_lines': False,
-            'disable-bootloader': 0
+            'disable-bootloader': 0,
+            'zig-star': 0
         }
 
 # http://www.python.org/doc/2.5.2/lib/module-getopt.html
 
     try:
         opts, args = getopt.getopt(sys.argv[1:],
-                                   "DhqVfeE:wvrp:b:a:l:i:",
+                                   "DhqVfeE:wvrp:b:a:l:i:Z",
                                    ['help', 'ieee-address=','erase-page=',
                                     'disable-bootloader',
+                                    'zig-star',
                                     'bootloader-active-high',
                                     'bootloader-invert-lines', 'version'])
     except getopt.GetoptError as err:
@@ -1123,6 +1127,8 @@ if __name__ == "__main__":
             conf['bootloader_invert_lines'] = True
         elif o == '-D' or o == '--disable-bootloader':
             conf['disable-bootloader'] = 1
+        elif o == '-Z' or o == '--zig-star':
+            conf['zig-star'] = 1
         elif o == '--version':
             print_version()
             sys.exit(0)
@@ -1176,7 +1182,17 @@ if __name__ == "__main__":
                 conf['port'] = ports[0]
             else:
                 raise Exception('No serial port found.')
-
+                
+        if conf['zig-star']:
+            mdebug(5, "ZigStar reset BSL...")
+            url = "http://" + conf['port'].split(':')[1][2:] + "/switch/firmware_update/toggle"
+            r = requests.post(url)
+            if r.status_code != 200:
+                raise CmdException("Can't enable BSL. "
+                                   "Check IP address. ")
+            mdebug(5, "OK. Wait 5 seconds")
+            time.sleep(5)
+            
         cmd = CommandInterface()
         cmd.open(conf['port'], conf['baud'])
         cmd.invoke_bootloader(conf['bootloader_active_high'],
@@ -1244,10 +1260,12 @@ if __name__ == "__main__":
         if conf['write']:
             # TODO: check if boot loader back-door is open, need to read
             #       flash size first to get address
+            flash_start_time = time.time()
             if cmd.writeMemory(conf['address'], firmware.bytes):
                 mdebug(5, "    Write done                                ")
             else:
                 raise CmdException("Write failed                       ")
+            print("Write took " + str(int(time.time() - flash_start_time)) + " seconds")
 
         if conf['verify']:
             mdebug(5, "Verifying by comparing CRC32 calculations.")
