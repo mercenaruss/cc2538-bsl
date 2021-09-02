@@ -1184,14 +1184,14 @@ if __name__ == "__main__":
                 raise Exception('No serial port found.')
                 
         if conf['zig-star']:
-            mdebug(5, "ZigStar reset BSL...")
+            mdebug(5, "ZigStar Reset BSL...")
             url = "http://" + conf['port'].split(':')[1][2:] + "/switch/firmware_update/toggle"
             r = requests.post(url)
             if r.status_code != 200:
                 raise CmdException("Can't enable BSL. "
                                    "Check IP address. ")
-            mdebug(5, "OK. Wait 5 seconds")
-            time.sleep(5)
+            mdebug(5, "OK. Wait 8 seconds")
+            time.sleep(8)
             
         cmd = CommandInterface()
         cmd.open(conf['port'], conf['baud'])
